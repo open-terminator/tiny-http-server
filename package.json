@@ -1,0 +1,11 @@
+{
+  "name": "tiny-http-server",
+  "version": "0.1.0",
+  "description": "A tiny dependency-free HTTP server in Node.js.",
+  "main": "src/server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/server.js"
+  },
+  "license": "MIT"
+}
