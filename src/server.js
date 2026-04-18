@@ -27,6 +27,22 @@ function sendText(res, statusCode, body) {
   res.end(body);
 }
 
+function readRequestBody(req) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+
+    req.on('data', (chunk) => {
+      chunks.push(chunk);
+    });
+
+    req.on('end', () => {
+      resolve(Buffer.concat(chunks).toString('utf-8'));
+    });
+
+    req.on('error', reject);
+  });
+}
+
 function serveFile(res, filePath) {
   fs.readFile(filePath, (error, data) => {
     if (error) {
@@ -67,7 +83,7 @@ const server = http.createServer((req, res) => {
     return sendJson(res, 200, {
       ok: true,
       name: 'tiny-http-server',
-      endpoints: ['/', '/public/*', '/api', '/health', '/echo?message=hello'],
+      endpoints: ['/', '/public/*', '/api', '/health', '/echo?message=hello', 'POST /echo'],
       timestamp: now,
     });
   }
@@ -87,6 +103,48 @@ const server = http.createServer((req, res) => {
       message: url.searchParams.get('message') || '',
       timestamp: now,
     });
+  }
+
+  if (req.method === 'POST' && url.pathname === '/echo') {
+    const contentType = (req.headers['content-type'] || '').split(';', 1)[0].trim().toLowerCase();
+
+    if (contentType !== 'application/json') {
+      return sendJson(res, 415, {
+        ok: false,
+        error: 'Unsupported media type',
+        expected: 'application/json',
+        received: contentType || null,
+        timestamp: now,
+      });
+    }
+
+    return readRequestBody(req)
+      .then((rawBody) => {
+        let payload;
+
+        try {
+          payload = JSON.parse(rawBody);
+        } catch {
+          return sendJson(res, 400, {
+            ok: false,
+            error: 'Invalid JSON',
+            timestamp: now,
+          });
+        }
+
+        return sendJson(res, 200, {
+          ok: true,
+          payload,
+          timestamp: now,
+        });
+      })
+      .catch(() => {
+        return sendJson(res, 500, {
+          ok: false,
+          error: 'Internal server error',
+          timestamp: now,
+        });
+      });
   }
 
   if (req.method === 'GET' && url.pathname.startsWith('/public/')) {
