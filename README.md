@@ -6,7 +6,7 @@ A tiny dependency-free HTTP server in Node.js.
 
 ![Node](https://img.shields.io/badge/runtime-node-339933)
 ![Dependencies](https://img.shields.io/badge/dependencies-0-2ea44f)
-![Routes](https://img.shields.io/badge/routes-6-blue)
+![Routes](https://img.shields.io/badge/routes-7-blue)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 </div>
@@ -25,6 +25,12 @@ npm start
 
 By default the server listens on `0.0.0.0:3000`.
 
+Each completed request is logged to stdout as a single line:
+
+```text
+2026-04-18T00:00:00.000Z GET /api 200 2ms
+```
+
 ## Endpoints
 
 ### `GET /`
@@ -42,6 +48,9 @@ Returns a simple health response with uptime.
 ### `GET /echo?message=hello`
 Returns the provided `message` query parameter.
 
+### `GET /headers`
+Returns the request method, path, and headers as JSON.
+
 ### `POST /echo`
 Accepts `application/json`, parses the request body, and echoes the JSON payload back.
 
@@ -57,6 +66,7 @@ curl http://127.0.0.1:3000/public/index.html
 curl http://127.0.0.1:3000/api
 curl http://127.0.0.1:3000/health
 curl 'http://127.0.0.1:3000/echo?message=hello'
+curl http://127.0.0.1:3000/headers -H 'X-Debug: demo'
 curl -X POST http://127.0.0.1:3000/echo \
   -H 'Content-Type: application/json' \
   -d '{"message":"hello","count":2}'
@@ -80,7 +90,7 @@ Example response from `/api`:
     "/api",
     "/health",
     "/echo?message=hello",
-    "POST /echo"
+    "/headers"
   ],
   "timestamp": "2026-04-18T00:00:00.000Z"
 }
@@ -94,6 +104,21 @@ Example response from `/health`:
   "status": "healthy",
   "uptimeSeconds": 3,
   "timestamp": "2026-04-18T00:00:00.000Z"
+}
+```
+
+Example response from `/headers`:
+
+```json
+{
+  "method": "GET",
+  "path": "/headers",
+  "headers": {
+    "host": "127.0.0.1:3000",
+    "user-agent": "curl/8.0.0",
+    "accept": "*/*",
+    "x-debug": "demo"
+  }
 }
 ```
 
@@ -140,8 +165,10 @@ Example response for an unsupported `Content-Type`:
 ## Notes
 
 - Static file serving is intentionally small and dependency-free.
+- Request logging is intentionally minimal and does not include headers, bodies, or client addresses.
 - `GET /` maps to `public/index.html`.
 - `GET /echo` reads from the query string; `POST /echo` reads a JSON body.
+- `GET /headers` is useful for quick request inspection during local debugging.
 - JSON endpoints remain simple and practical for local use.
 
 ## License

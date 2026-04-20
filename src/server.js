@@ -43,6 +43,15 @@ function readRequestBody(req) {
   });
 }
 
+function logRequest(req, res, startedAt) {
+  const durationMs = Date.now() - startedAt;
+  const timestamp = new Date().toISOString();
+  const method = req.method || 'UNKNOWN';
+  const pathName = req.url ? req.url.split('?', 1)[0] : '/';
+
+  console.log(`${timestamp} ${method} ${pathName} ${res.statusCode} ${durationMs}ms`);
+}
+
 function serveFile(res, filePath) {
   fs.readFile(filePath, (error, data) => {
     if (error) {
@@ -72,6 +81,11 @@ function resolvePublicPath(urlPath) {
 }
 
 const server = http.createServer((req, res) => {
+  const startedAt = Date.now();
+  res.on('finish', () => {
+    logRequest(req, res, startedAt);
+  });
+
   const url = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
   const now = new Date().toISOString();
 
@@ -83,7 +97,7 @@ const server = http.createServer((req, res) => {
     return sendJson(res, 200, {
       ok: true,
       name: 'tiny-http-server',
-      endpoints: ['/', '/public/*', '/api', '/health', '/echo?message=hello', 'POST /echo'],
+      endpoints: ['/', '/public/*', '/api', '/health', '/echo?message=hello', '/headers'],
       timestamp: now,
     });
   }
@@ -102,6 +116,14 @@ const server = http.createServer((req, res) => {
       ok: true,
       message: url.searchParams.get('message') || '',
       timestamp: now,
+    });
+  }
+
+  if (req.method === 'GET' && url.pathname === '/headers') {
+    return sendJson(res, 200, {
+      method: req.method,
+      path: url.pathname,
+      headers: req.headers,
     });
   }
 
